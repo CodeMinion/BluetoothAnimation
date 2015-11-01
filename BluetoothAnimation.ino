@@ -22,18 +22,18 @@ const int EYES_HORIZONTAL_MAX = 130;
 const int EYES_VERTICAL_MIN = 60;
 const int EYES_VERTICAL_MAX = 115;
 
-const int MOUTH_MIN = 0;
-const int MOUTH_MAX = 170;
+const int MOUTH_MIN = 40;//80;
+const int MOUTH_MAX = 100;//170;
 
-const int PIN_EYES_HORIZONTAL = 7;
-const int PIN_EYES_VERTICAL = 8;
-const int PIN_MOUTH = 9;
+const int PIN_MOUTH = 7;
+const int PIN_EYES_HORIZONTAL = 8;
+const int PIN_EYES_VERTICAL = 9;
 
 Servo m_ServoEyesHorizontal, m_ServoEyesVertical;
 Servo m_ServoMouthVertical;
 
 int m_IncommingByte;
-int m_Command;
+long m_Command;
 
 int m_CommandEntered, m_CommandComplete;
 
@@ -68,6 +68,7 @@ void initializeServos()
   m_ServoMouthVertical.write(90);  
 }
 
+
 void loop() 
 {
     if(!m_CommandComplete)
@@ -80,10 +81,11 @@ void loop()
        return; 
     }
     
-    int motorId = (m_Command & 0x0F00) >> 16;
-    int motionX = (m_Command & 0x00F0) >> 8;
-    int motionY = (m_Command & 0x000F);
+    int motorId = (m_Command & 0x00FF0000) >> 16;
+    int motionX = (m_Command & 0x0000FF00) >> 8;
+    int motionY = (m_Command & 0x000000FF);
     
+    Serial.println();
     // Handle motor motion.
     handleMotors(motorId, motionX, motionY);
     
@@ -94,27 +96,65 @@ void loop()
 
 void handleMotors(int motorId, int motionX, int motionY)
 {
-   int motorAngle = 90;
-   if(motorId = 1)
+   if(motorId == 1)
    {
        // This is meant for moving the eyes.
+       moveEyes(motionX, motionY);
    } 
    else if(motorId == 2)
    {
       // This is meant for moving the mouth;
-      if(motorAngle >  MOUTH_MAX)
-      {
-         motorAngle = MOUTH_MAX; 
-      }
-      else if(motorAngle < MOUTH_MIN)
-      {
-         motorAngle = MOUTH_MIN; 
-      }
-      
-      m_ServoMouthVertical.write(motorAngle);
+      moveMouth(motionY);
       
    }
 }
+
+void moveEyes(int horziontalDelta, int verticalDelta)
+{
+  int horizontalAngle = EYES_HORIZONTAL_MIN 
+  + horziontalDelta;
+  
+  if(horizontalAngle > EYES_HORIZONTAL_MAX)
+  {
+    horizontalAngle = EYES_HORIZONTAL_MAX;
+  }
+  else if(horizontalAngle < EYES_HORIZONTAL_MIN)
+  {
+    horizontalAngle = EYES_HORIZONTAL_MIN;
+  }
+  
+  int verticalAngle = EYES_VERTICAL_MIN
+  + verticalDelta;
+  
+  if(verticalAngle > EYES_VERTICAL_MAX)
+  {
+    verticalAngle = EYES_VERTICAL_MAX;
+  }
+  else if (verticalAngle < EYES_VERTICAL_MIN)
+  {
+    verticalAngle = EYES_VERTICAL_MIN;
+  }
+  
+  m_ServoEyesHorizontal.write(horizontalAngle);
+  m_ServoEyesVertical.write(verticalAngle);
+  
+}
+
+void moveMouth(int verticalDelta)
+{
+  int motorAngle = MOUTH_MIN + verticalDelta;
+  
+  if(motorAngle >  MOUTH_MAX)
+  {
+    motorAngle = MOUTH_MAX; 
+  }
+  else if(motorAngle < MOUTH_MIN)
+  {
+    motorAngle = MOUTH_MIN; 
+  }
+  m_ServoMouthVertical.write(motorAngle);    
+}
+
 
 void serialEvent()
 {
@@ -126,6 +166,8 @@ void handleCommand()
   while(Serial.available())
   {
      m_IncommingByte = Serial.read();
+  
+     m_CommandEntered = true;
      
      if(m_IncommingByte == (int)'\n'
        || m_IncommingByte == (int)'\r')
@@ -136,8 +178,7 @@ void handleCommand()
        {
           // We have parts of a command.
           m_Command = m_Command << 8;
-          m_Command = m_Command | m_IncommingByte;
-          break; 
+          m_Command = m_Command | (0x00FF & m_IncommingByte);
        }
   }
 }
