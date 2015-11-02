@@ -11,9 +11,9 @@
 *
 * Command Format:
 * Length 3 Bytes + Terminator Byte (\n or \r)
-* Byte # 3: Motor ID ( 1 for Eyes, 2 for Mouth)
-* Byte # 2: Motion X Component (Between 0-200)
-* Byte # 1: Motion Y Component (Between 0-200) 
+* Byte # 2: Motor ID ( 1 for Eyes, 2 for Mouth)
+* Byte # 1: Motion X Component (Between 0-200)
+* Byte # 0: Motion Y Component (Between 0-200) 
 **/
 
 const int EYES_HORIZONTAL_MIN = 40;
